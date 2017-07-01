@@ -15,6 +15,9 @@ describe('Vuzel.Dispatcher', () => {
 });
 
 describe('Vuzel.Endpoint', () => {
+	it("should not throw if 'id' supplied as the only parameter", () => {
+		expect(() => new Vuzel.Endpoint('endpoint')).not.to.throw();
+	});
 	it("should throw if no 'id' supplied", () => {
 		expect(() => new Vuzel.Endpoint()).to.throw();
 	});
@@ -87,5 +90,21 @@ describe('Vuzel.Message', () => {
 });
 
 describe('Vuzel.Endpoint.send()', () => {
-	//
+	let dispatcher, endpoint_1, endpoint_2;
+
+	beforeEach(() => {
+		dispatcher = new Vuzel.Dispatcher();
+		endpoint_1 = new Vuzel.Endpoint({id: 'e1', dispatcher: dispatcher});
+		endpoint_2 = new Vuzel.Endpoint({id: 'e2', dispatcher: dispatcher});
+	});
+
+	it("should send and receive a direct message created inline", (done) => {
+		endpoint_2.recv.on('action', (message) => done());
+		endpoint_1.send({to: 'e2', action: 'action'});
+	});
+	it("should send and receive a direct message created externally", (done) => {
+		endpoint_2.recv.on('action', (message) => done());
+		let message = new Vuzel.Message({to: 'e2', action: 'action'});
+		endpoint_1.send(message);
+	});
 });
