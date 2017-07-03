@@ -90,12 +90,13 @@ describe('Vuzel.Message', () => {
 });
 
 describe('Vuzel.Endpoint.send()', () => {
-	let dispatcher, endpoint_1, endpoint_2;
+	let dispatcher, endpoint_1, endpoint_2, endpoint_3;
 
 	beforeEach(() => {
 		dispatcher = new Vuzel.Dispatcher();
 		endpoint_1 = new Vuzel.Endpoint({id: 'e1', dispatcher: dispatcher});
 		endpoint_2 = new Vuzel.Endpoint({id: 'e2', dispatcher: dispatcher});
+		endpoint_3 = new Vuzel.Endpoint({id: 'e3', dispatcher: dispatcher});
 	});
 
 	it("should send and receive a direct message created inline", (done) => {
@@ -106,5 +107,43 @@ describe('Vuzel.Endpoint.send()', () => {
 		endpoint_2.recv.on('action', (message) => done());
 		let message = new Vuzel.Message({to: 'e2', action: 'action'});
 		endpoint_1.send(message);
+	});
+	it("should send and receive an action message", (done) => {
+		endpoint_2.recv.on('action', (message) => done());
+		endpoint_1.send({action: 'action'});
+	});
+	it("should send and receive a topic message", (done) => {
+		endpoint_2.subscribe('topic');
+		endpoint_2.recv.on('action', (message) => done());
+		endpoint_1.send({action: 'action', topic: 'topic'});
+	});
+	it("should not receive a topic message sent to another topic", (done) => {
+		endpoint_2.subscribe('topic');
+		endpoint_2.recv.on('action', (message) => done('should not trigger'));
+		endpoint_3.subscribe('another-topic');
+		endpoint_3.recv.on('action', (message) => done());
+		endpoint_1.send({action: 'action', topic: 'another-topic'});
+	});
+	it("multiple endpoints should receive an action message", (done) => {
+		let promise_1 = new Promise((resolve) => {
+			endpoint_2.recv.on('action', (message) => resolve);
+		});
+		let promise_2 = new Promise((resolve) => {
+			endpoint_3.recv.on('action', (message) => resolve);
+		});
+		Promise.all([promise_1, promise_2]).then(() => done());
+		endpoint_1.send({action: 'action'});
+	});
+	it("multiple endpoints should receive a topic message", (done) => {
+		endpoint_2.subscribe('topic');
+		endpoint_3.subscribe('topic');
+		let promise_1 = new Promise((resolve) => {
+			endpoint_2.recv.on('action', (message) => resolve);
+		});
+		let promise_2 = new Promise((resolve) => {
+			endpoint_3.recv.on('action', (message) => resolve);
+		});
+		Promise.all([promise_1, promise_2]).then(() => done());
+		endpoint_1.send({action: 'action', topic: 'topic'});
 	});
 });
